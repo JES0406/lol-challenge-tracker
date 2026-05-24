@@ -48,6 +48,40 @@ if (!app.requestSingleInstanceLock()) {
 const preload = path.join(__dirname, "../preload/index.mjs")
 const indexHtml = path.join(RENDERER_DIST, "index.html")
 
+// Calibrated for 1920x840 fullscreen/borderless League client
+const OVERLAY_X = 660
+const OVERLAY_Y = 58
+const OVERLAY_WIDTH = 600
+const OVERLAY_HEIGHT = 82
+
+function createOverlayWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    x: OVERLAY_X,
+    y: OVERLAY_Y,
+    width: OVERLAY_WIDTH,
+    height: OVERLAY_HEIGHT,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    focusable: false,
+    skipTaskbar: true,
+    show: false,
+    webPreferences: {
+      preload,
+      nodeIntegration: true,
+      allowRunningInsecureContent: true,
+      webSecurity: false,
+    },
+  })
+  win.setIgnoreMouseEvents(true)
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(`${VITE_DEV_SERVER_URL}?overlay=true`)
+  } else {
+    win.loadFile(indexHtml, { query: { overlay: "true" } })
+  }
+  return win
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     title: "Main window",
@@ -110,6 +144,7 @@ function parseEventMessage(message: string) {
 
 async function connectWebsocket(
   win: BrowserWindow,
+  overlayWin: BrowserWindow,
   credentials: LCUCredentials
 ) {
   const { address, port, username, password } = credentials
@@ -129,6 +164,7 @@ async function connectWebsocket(
     switch (event.type) {
       case LCUEvents.EndOfGameStats:
         win.webContents.send("end-of-game")
+        overlayWin.hide()
         break
       case LCUEvents.ChampSelectSession:
         const champId = parseSessionEvent(event.data)
@@ -147,6 +183,13 @@ async function connectWebsocket(
             "game-start",
             event.data.gameData.playerChampionSelections
           )
+          overlayWin.hide()
+        } else if (
+          ["Lobby", "None", "WaitingForStats", "EndOfGame"].includes(
+            event.data.phase
+          )
+        ) {
+          overlayWin.hide()
         }
         break
     }
@@ -161,16 +204,20 @@ async function connectWebsocket(
   })
 }
 
-function connectToLcu(win: BrowserWindow) {
+function connectToLcu(win: BrowserWindow, overlayWin: BrowserWindow) {
   const connector = new LCUConnector()
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
     // LCU refuses websocket connections too early
-    wsTimeout = setTimeout(() => connectWebsocket(win, credentials), 10000)
+    wsTimeout = setTimeout(
+      () => connectWebsocket(win, overlayWin, credentials),
+      10000
+    )
   })
   connector.on("disconnect", () => {
     clearTimeout(wsTimeout)
+    overlayWin.hide()
     return sendCredentials(win, null)
   })
   connector.start()
@@ -181,9 +228,25 @@ const store = new Store()
 async function main() {
   await app.whenReady()
   const win = await createWindow()
+  const overlayWin = createOverlayWindow()
 
-  ipcMain.on("app-ready", () => connectToLcu(win))
-  ipcMain.on("connect-to-lcu", () => connectToLcu(win))
+  ipcMain.on("app-ready", () => connectToLcu(win, overlayWin))
+  ipcMain.on("connect-to-lcu", () => connectToLcu(win, overlayWin))
+
+  ipcMain.on(
+    "bench-status",
+    (
+      _event,
+      data: { id: number; name: string; done: boolean }[]
+    ) => {
+      overlayWin.webContents.send("bench-status", data)
+      if (data.length > 0) {
+        if (!overlayWin.isVisible()) overlayWin.show()
+      } else {
+        overlayWin.hide()
+      }
+    }
+  )
 
   ipcMain.on("store-set", (_, key, value) => {
     store.set(key, value)

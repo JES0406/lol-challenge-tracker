@@ -126,3 +126,10 @@ body {
   outline: none;
   box-shadow: 0 0 8px 0 #ffffff50;
 }
+
+html.overlay-mode,
+html.overlay-mode body {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+}

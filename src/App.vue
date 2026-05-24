@@ -154,6 +154,18 @@ window.ipcRenderer.on(
   },
 )
 
+window.ipcRenderer.on("bench-update", (_event: any, benchIds: number[]) => {
+  const currentChallenge = challenges.value[selectedChallengeIndex.value]
+  if (!currentChallenge) return
+  const benchStatus = benchIds
+    .map((id) => {
+      const champ = currentChallenge.champions.find((c) => c.id === id)
+      return champ ? { id, name: champ.name, done: champ.done } : null
+    })
+    .filter((c): c is { id: number; name: string; done: boolean } => c !== null)
+  window.ipcRenderer.send("bench-status", benchStatus)
+})
+
 window.ipcRenderer.on("refetch", fetchLCU)
 
 const settingsVisible = ref(false)
