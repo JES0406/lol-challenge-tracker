@@ -81,7 +81,10 @@ const fetchLCU = async () => {
   } catch (e) {}
 }
 
-const selectedChallengeIndex = ref(0)
+const defaultChallengeIndex = challengeWithCompletion.findIndex(
+  (c) => c.id === "101301",
+)
+const selectedChallengeIndex = ref(defaultChallengeIndex === -1 ? 0 : defaultChallengeIndex)
 const isColoredWhenDone = ref(false)
 const showChampionNames = ref(false)
 
