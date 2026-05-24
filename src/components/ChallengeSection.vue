@@ -47,7 +47,7 @@ const championBuildLink = (champ: Champion) => {
     case "Arena":
       return `https://www.op.gg/lol/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
     case "Aram":
-      return `https://aram.zone/champion/${champ.alias.toLowerCase()}`
+      return `https://www.metasrc.com/lol/mayhem/build/${champ.alias.toLowerCase()}`
     case "Rift":
       return `https://op.gg/lol/champions/${champ.alias.toLowerCase()}/build`
   }
