@@ -18,6 +18,10 @@ export type LCUEventMessage =
       data: any
     }
 
+export interface BenchChampion {
+  championId: number
+}
+
 export interface ChampSelectSessionEvent {
   actions: {
     type: string
@@ -26,6 +30,7 @@ export interface ChampSelectSessionEvent {
     isAllyAction: boolean
   }[][]
   localPlayerCellId: number
+  benchChampions: BenchChampion[]
 }
 
 export interface PlayerChampionSelection {

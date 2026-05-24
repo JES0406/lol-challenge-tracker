@@ -7,6 +7,7 @@ import LCUConnector from "lcu-connector"
 import { WebSocket } from "ws"
 import Store from "electron-store"
 import {
+  BenchChampion,
   ChampSelectSessionEvent,
   LCUEventMessage,
   LCUEvents,
@@ -137,6 +138,8 @@ async function connectWebsocket(
         if (champId) {
           win.webContents.send("pick", champId)
         }
+        const bench: BenchChampion[] = event.data.benchChampions ?? []
+        win.webContents.send("bench-update", bench.map((b) => b.championId))
         break
       case LCUEvents.GameSession:
         if (event.data.phase === "InProgress") {
