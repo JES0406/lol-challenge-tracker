@@ -24,6 +24,7 @@ const summoner = ref<Summoner | null>(null)
 const challenges = ref<Challenge[]>([])
 const stats = ref<AramStats | null>(null)
 const selectedChamp = ref<Challenge["champions"][number] | null>(null)
+const benchChamps = ref<Challenge["champions"][number][]>([])
 
 onMounted(async () => {
   window.ipcRenderer.send("app-ready")
@@ -108,6 +109,7 @@ const handlePickEvent = (champId: number | null) => {
 
 window.ipcRenderer.on("end-of-game", () => {
   selectedChamp.value = null
+  benchChamps.value = []
   fetchLCU()
 })
 
@@ -156,14 +158,19 @@ window.ipcRenderer.on(
 
 window.ipcRenderer.on("bench-update", (_event: any, benchIds: number[]) => {
   const currentChallenge = challenges.value[selectedChallengeIndex.value]
-  if (!currentChallenge) return
-  const benchStatus = benchIds
-    .map((id) => {
-      const champ = currentChallenge.champions.find((c) => c.id === id)
-      return champ ? { id, name: champ.name, done: champ.done } : null
-    })
-    .filter((c): c is { id: number; name: string; done: boolean } => c !== null)
-  window.ipcRenderer.send("bench-status", benchStatus)
+  if (!currentChallenge || benchIds.length === 0) {
+    benchChamps.value = []
+    window.ipcRenderer.send("bench-status", [])
+    return
+  }
+  const resolved = benchIds
+    .map((id) => currentChallenge.champions.find((c) => c.id === id))
+    .filter((c): c is Challenge["champions"][number] => c !== undefined)
+  benchChamps.value = resolved
+  window.ipcRenderer.send(
+    "bench-status",
+    resolved.map((c) => ({ id: c.id, name: c.name, done: c.done })),
+  )
 })
 
 window.ipcRenderer.on("refetch", fetchLCU)
@@ -200,6 +207,7 @@ const challengeOptions = computed(() => {
         :challenge="challenges[selectedChallengeIndex]"
         :all-champions="allChampions"
         :selectedChamp="selectedChamp"
+        :benchChamps="benchChamps"
         :isColoredWhenDone="isColoredWhenDone"
         :showChampionNames="showChampionNames"
         :stats="stats"

@@ -37,6 +37,7 @@ const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
   selectedChamp: Challenge["champions"][number] | null
+  benchChamps: Challenge["champions"][number][]
   isColoredWhenDone: boolean
   showChampionNames: boolean
   stats: AramStats | null
@@ -150,46 +151,84 @@ const filterOptions = computed(() => {
 
     <div class="selected-champ-container">
       <div>
-        <div class="selected-champ-text">Champ Select Preview</div>
-        <div v-if="selectedChamp" class="selected-champ-done-label">
-          <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
-          {{ selectedChamp.done ? "Done" : "Not Done" }}
+        <div class="selected-champ-text">
+          {{ benchChamps.length > 0 ? "Available Champions" : "Champ Select Preview" }}
         </div>
-        <div class="champion">
-          <a
-            :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
-            target="_blank"
-          >
-            <img
-              v-if="selectedChamp"
-              :class="{
-                greyed: isColoredWhenDone
-                  ? selectedChamp.done
-                  : !selectedChamp.done,
-              }"
-              :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
-              :alt="selectedChamp.id.toString()"
-            />
-            <img
-              v-else
-              :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png`"
-              alt="-1"
-            />
-            <div v-if="selectedChamp && selectedChamp.done" class="check-mark">
-              <FontAwesomeIcon :icon="faCheck" />
+        <!-- bench row: show all bench champs during ARAM champ select -->
+        <template v-if="benchChamps.length > 0">
+          <div class="bench-row">
+            <div
+              v-for="champ in benchChamps"
+              :key="champ.id"
+              class="champion"
+              :class="{ picked: selectedChamp?.id === champ.id }"
+            >
+              <a :href="championBuildLink(champ)" target="_blank">
+                <img
+                  :class="{
+                    greyed: isColoredWhenDone ? champ.done : !champ.done,
+                  }"
+                  :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
+                  :alt="champ.name"
+                />
+                <div v-if="champ.done" class="check-mark">
+                  <FontAwesomeIcon :icon="faCheck" />
+                </div>
+              </a>
+              <AramStatBox
+                v-if="
+                  challenge.mode === 'Aram' &&
+                  stats &&
+                  showAramStats &&
+                  stats[champ.alias]
+                "
+                :stats="stats[champ.alias]"
+              />
             </div>
-          </a>
-          <AramStatBox
-            v-if="
-              selectedChamp &&
-              challenge.mode === 'Aram' &&
-              stats &&
-              showAramStats &&
-              stats[selectedChamp.alias]
-            "
-            :stats="stats[selectedChamp.alias]"
-          />
-        </div>
+          </div>
+        </template>
+        <!-- fallback: single picked champ (non-ARAM or pre-bench-data) -->
+        <template v-else>
+          <div v-if="selectedChamp" class="selected-champ-done-label">
+            <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
+            {{ selectedChamp.done ? "Done" : "Not Done" }}
+          </div>
+          <div class="champion">
+            <a
+              :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
+              target="_blank"
+            >
+              <img
+                v-if="selectedChamp"
+                :class="{
+                  greyed: isColoredWhenDone
+                    ? selectedChamp.done
+                    : !selectedChamp.done,
+                }"
+                :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
+                :alt="selectedChamp.id.toString()"
+              />
+              <img
+                v-else
+                :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png`"
+                alt="-1"
+              />
+              <div v-if="selectedChamp && selectedChamp.done" class="check-mark">
+                <FontAwesomeIcon :icon="faCheck" />
+              </div>
+            </a>
+            <AramStatBox
+              v-if="
+                selectedChamp &&
+                challenge.mode === 'Aram' &&
+                stats &&
+                showAramStats &&
+                stats[selectedChamp.alias]
+              "
+              :stats="stats[selectedChamp.alias]"
+            />
+          </div>
+        </template>
       </div>
     </div>
 
@@ -261,6 +300,18 @@ input.search {
 .selected-champ-container {
   display: flex;
   margin-bottom: 32px;
+}
+
+.bench-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.champion.picked > a {
+  border: 2px solid #c8aa6e;
+  box-shadow: 0 0 8px #c8aa6e80;
 }
 
 .selected-champ-text {
