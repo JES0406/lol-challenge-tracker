@@ -162,6 +162,25 @@ const filterOptions = computed(() => {
         <!-- bench row: show all bench champs during ARAM champ select -->
         <template v-if="benchChamps.length > 0">
           <div class="bench-row">
+            <!-- picked champ icon first, not part of bench -->
+            <div v-if="selectedChamp" class="champion picked">
+              <a :href="championBuildLink(selectedChamp)" target="_blank">
+                <img
+                  :class="{
+                    greyed: isColoredWhenDone
+                      ? selectedChamp.done
+                      : !selectedChamp.done,
+                  }"
+                  :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
+                  :alt="selectedChamp.name"
+                />
+                <div v-if="selectedChamp.done" class="check-mark">
+                  <FontAwesomeIcon :icon="faCheck" />
+                </div>
+              </a>
+            </div>
+          </div>
+          <div class="bench-row">
             <div
               v-for="champ in benchChamps"
               :key="champ.id"
