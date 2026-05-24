@@ -154,6 +154,11 @@ const filterOptions = computed(() => {
         <div class="selected-champ-text">
           {{ benchChamps.length > 0 ? "Available Champions" : "Champ Select Preview" }}
         </div>
+        <!-- picked champ shown above bench when both are present -->
+        <div v-if="selectedChamp && benchChamps.length > 0" class="selected-champ-done-label">
+          <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
+          {{ selectedChamp.done ? "Done" : "Not Done" }}
+        </div>
         <!-- bench row: show all bench champs during ARAM champ select -->
         <template v-if="benchChamps.length > 0">
           <div class="bench-row">
